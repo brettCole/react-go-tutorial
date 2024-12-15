@@ -128,16 +128,24 @@ func updateTodo(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid collection status"})
 	}
 
+	var todo Todo
+	err = collection.FindOne(context.Background(), bson.M{"_id": ObjectID}).Decode(&todo)
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Todo not found"})
+	}
+
+	// Toggle the completed status
+	newCompletedStatus := !todo.Completed
+
 	filter := bson.M{"_id": ObjectID}
-	update := bson.M{"$set": bson.M{"completed": true}}
+	update := bson.M{"$set": bson.M{"completed": newCompletedStatus}}
 
 	_, err = collection.UpdateOne(context.Background(), filter, update)
-
 	if err != nil {
 		return err
 	}
 
-	return c.Status(200).JSON(fiber.Map{"success": true})
+	return c.Status(200).JSON(fiber.Map{"success": true, "completed": newCompletedStatus})
 }
 func deleteTodo(c *fiber.Ctx) error {
 	id := c.Params("id")
